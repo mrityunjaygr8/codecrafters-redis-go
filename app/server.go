@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	// Uncomment this block to pass the first stage
 	"net"
@@ -18,9 +19,25 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	_, err = l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
+	defer conn.Close()
+
+	// for {
+	reader := make([]byte, 256)
+	var writer bytes.Buffer
+	nRead, err := conn.Read(reader)
+	if err != nil {
+		fmt.Println("Error reading connection: ", err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Println(nRead, string(reader))
+	writer.Write([]byte("+PONG\r\n"))
+	nWritten, err := conn.Write(writer.Bytes())
+	fmt.Println(nWritten, string(writer.String()))
+	// }
 }
