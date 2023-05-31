@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
+
 	// Uncomment this block to pass the first stage
 	"net"
 	"os"
@@ -26,18 +29,21 @@ func main() {
 	}
 	defer conn.Close()
 
-	// for {
-	reader := make([]byte, 256)
-	var writer bytes.Buffer
-	nRead, err := conn.Read(reader)
-	if err != nil {
-		fmt.Println("Error reading connection: ", err.Error())
-		os.Exit(1)
-	}
+	for {
+		reader := make([]byte, 256)
+		var writer bytes.Buffer
+		nRead, err := conn.Read(reader)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			fmt.Println("Error reading connection: ", err.Error())
+			os.Exit(1)
+		}
 
-	fmt.Println(nRead, string(reader))
-	writer.Write([]byte("+PONG\r\n"))
-	nWritten, err := conn.Write(writer.Bytes())
-	fmt.Println(nWritten, string(writer.String()))
-	// }
+		fmt.Println(nRead, string(reader))
+		writer.Write([]byte("+PONG\r\n"))
+		nWritten, err := conn.Write(writer.Bytes())
+		fmt.Println(nWritten, string(writer.String()))
+	}
 }
