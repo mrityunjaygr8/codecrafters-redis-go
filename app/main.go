@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/mrityunjaygr8/app/proto"
+	"github.com/mrityunjaygr8/app/store"
 
 	// Uncomment this block to pass the first stage
 	"net"
@@ -26,6 +27,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	store := store.New()
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -33,12 +36,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		go handleConn(conn)
+		go handleConn(conn, store)
 
 	}
 }
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, store *store.MemStore) {
 	defer conn.Close()
 
 	for {
@@ -61,6 +64,18 @@ func handleConn(conn net.Conn) {
 			conn.Write([]byte("+PONG\r\n"))
 		case "echo":
 			conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(args[0].String()), args[0].String())))
+		case "get":
+			value, err := store.Get(args[0].String())
+			if err != nil {
+				conn.Write([]byte("$-1\r\n"))
+				break
+			}
+
+			conn.Write([]byte("+" + value + "\r\n"))
+		case "set":
+			store.Set(args[0].String(), args[1].String())
+			conn.Write([]byte("+OK\r\n"))
+
 		default:
 			conn.Write([]byte("-ERR wierd shit '" + command + "'\r\n"))
 		}
