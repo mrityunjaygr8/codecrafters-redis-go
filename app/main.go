@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/mrityunjaygr8/app/proto"
 	"github.com/mrityunjaygr8/app/store"
@@ -73,7 +75,27 @@ func handleConn(conn net.Conn, store *store.MemStore) {
 
 			conn.Write([]byte("+" + value + "\r\n"))
 		case "set":
-			store.Set(args[0].String(), args[1].String())
+			if !(len(args) == 2 || len(args) == 4) {
+				conn.Write([]byte("-ERR wierd shit '" + command + "'\r\n"))
+				break
+			}
+			expiry := time.Millisecond * 0
+			if len(args) == 4 && args[2].String() != "PX" {
+				conn.Write([]byte("-ERR wierd shit '" + command + "'\r\n"))
+				break
+			}
+
+			if len(args) == 4 {
+				t, err := strconv.Atoi(args[3].String())
+				if err != nil {
+					conn.Write([]byte("-ERR wierd shit '" + command + "'. Improper format for expiry key\r\n"))
+					break
+				}
+
+				expiry = time.Millisecond * time.Duration(t)
+
+			}
+			store.Set(args[0].String(), args[1].String(), expiry)
 			conn.Write([]byte("+OK\r\n"))
 
 		default:
